@@ -11,21 +11,32 @@ import csv
 import time
 import random
 
+from get_header import get_default_headers
+from wxpy import get_wechat_logger
+from wxpy import Bot
+import codecs
 
-from proxybroker import Broker, ProxyPool
+try:
+    import uvloop
 
-from .get_headers import get_default_header
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy()) 
+except ImportError:
+    pass
+# bot = Bot(console_qr=True)
 
-# base_url = 'http://sh.lianjia.com/'
-base_url = 'https://sz.lianjia.com/'
+import logging    
+#logger = get_wechat_logger(bot)
+logger = logging.getLogger()
+
+# random.randint(1,3)
+base_url = 'http://sh.lianjia.com/'
 prefix_url = base_url[:-1]
 
-file = 'lianjia_shenzhen.csv'
+file = 'lianjia_sh.csv'
 
-max_page = 2300
+max_page = 100 #2300
 
-# random.randint(1,5)；随机暂停时间
-# sleep_interval = 2
+sleep_interval = 0.1
 
 
 def get_page_url(_max_page, start=1):
@@ -85,10 +96,8 @@ def create_csv():
 
 
 class Crawler:
-
-
     def __init__(self, roots,
-                 max_tries=3, max_tasks=10, loop=None):
+                 max_tries=4, max_tasks=10, _loop=None):
         self.loop = _loop or asyncio.get_event_loop()
         self.roots = roots
         self.max_tries = max_tries
@@ -97,24 +106,22 @@ class Crawler:
         self.seen_urls = set()
         self.session = aiohttp.ClientSession(loop=self.loop)
         self.href_house = {}
-		
-		self.proxy_pool = proxy_pool
-		
         create_csv()
         for root in roots:
             self.urls_queue.put_nowait(root)
 
         self.started_at = datetime.now()
         self.end_at = None
-		self.proxy_pool = asyncio.PriorityQueue(loop=self.loop)
-		
-		self.semaphore = asyncio.Semaphore(20)
+        
+        self.semaphore = asyncio.Semaphore(20)
 
     def close(self):
         self.session.close()
 
     def write_to_csv(self, house_dict):
-        with open(file, 'a+', newline='') as f:
+        print('start write to csv')
+        logger.warning('start write to csv')
+        with open(file, 'a+', newline='','utf_8_sig') as f:
             f_csv = csv.writer(f)
             href = house_dict['href']
             f_csv.writerow(house_dict.values())
@@ -122,6 +129,7 @@ class Crawler:
 
     @staticmethod
     async def fetch_etree(response):
+        logger.warning('fetch etree')
         if response.status == 200:
             content_type = response.headers.get('content-type')
             if content_type:
@@ -132,6 +140,7 @@ class Crawler:
                 return doc
 
     def _parse_root_per_house(self, house_box, count):
+        logger.warning(' parse root per house')
         house_dict = OrderedDict()
         child = '//li[{}]'.format(count)
 
@@ -191,6 +200,7 @@ class Crawler:
         return house_dict
 
     def parse_root_etree(self, doc):
+        logger.warning(' parse root etree')
         houses_select = '//*[@id="house-lst"]/li'
         houses_list = doc.xpath(houses_select)
         count = 0
@@ -202,6 +212,7 @@ class Crawler:
             self.urls_queue.put_nowait(second_level_url)
 
     def parse_second_etree(self, doc, href):
+        logger.warning(' parse second etree')
         assert href in self.href_house.keys()
         assert href in self.seen_urls
         house_dict = self.href_house[href]
@@ -214,6 +225,7 @@ class Crawler:
                 house_dict['latest_week_views'] = doc.xpath(
                     '//*[@id="record"]/div[2]/div[2]/text()')[0]
             except IndexError:
+                
                 house_dict['latest_week_views'] = None
         else:
             house_dict['address'] = None
@@ -236,74 +248,66 @@ class Crawler:
 
         house_dict['captured_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.write_to_csv(house_dict)
-				
 
-	async def handle(self, url, proxy, headers):
-		with (await self.semaphore):
-			tries = 0
-			while tries < self.max_tries:
-				try:
-					response = await self.session.get(
-						url,allow_redirects=False,
-						proxy=proxy,url,
-						headers=headers,
-						timeout=8)
-					break
-				tries += 1
-			try:
-				doc = await self.fetch_etree(response)
-				if is_root_url(url):
-					print('root:{}'.format(url))
-					self.parse_root_etree(doc)
-				else:
-					print('second level:{}'.format(url))
-					self.parse_second_etree(doc, url)
-			finally:
-				await response.release()
-			
+    async def handle(self, url):
+        with (await self.semaphore):
+            tries = 0
+            while tries < self.max_tries:
+                try:
+                    headers = get_default_headers()
+                    response = await self.session.get(
+                        url, headers=headers, 
+                        allow_redirects=False, timeout=8)
+                    break
+                except Exception as e:
+                    logger.exception('handle Error:')
+                    print(e)
+                tries += 1
+            try:
+                doc = await self.fetch_etree(response)
+                if is_root_url(url):
+                    print('root:{}'.format(url))
+                    self.parse_root_etree(doc)
+                else:
+                    print('second level:{}'.format(url))
+                    self.parse_second_etree(doc, url)
+            finally:
+                await response.release()
+
     async def work(self):
+        logger.warning('work')
         try:
-			# proxyer = Proxy_Crawler()
             while True:
-				headers = await get_default_header()
-				
                 url = await self.urls_queue.get()
-				
-				proxy = await proxy_pool.get(scheme=urlparse(url).scheme)
-                await self.handle(url,proxy,headers)
-                time.sleep(random.randint(0, 4))
+                print('get after left urls_queue:',self.urls_queue.qsize())
+                await self.handle(url)
+                logger.warning('handle url')
+                time.sleep(random.random())
+                logger.warning('handle join')
                 self.urls_queue.task_done()
         except asyncio.CancelledError:
-            pass
-		finally:
-			if proxy:
-				proxy_pool.put(proxy)
-
+            print('work done!')
 
     async def run(self):
         workers = [asyncio.Task(self.work(), loop=self.loop)
                    for _ in range(self.max_tasks)]
         self.started_at = datetime.now()
+        logger.warning('run join')
         await self.urls_queue.join()
         self.end_at = datetime.now()
         for w in workers:
             w.cancel()
 
-	
 if __name__ == '__main__':
 
     loop = asyncio.get_event_loop()
-	proxies = asyncio.Queue()
-	
-	proxy_pool = ProxyPool(proxies)
-    crawler = Crawler(get_page_url(max_page), max_tasks=100, proxy_pool=proxy_pool loop=loop)
-	types = [('HTTP', ('Anonymous', 'High')), ]
-	
-	tasks = asyncio.gather(broker.find(types=types, limit=10),crawler.run())
-    loop.run_until_complete(tasks))
+    crawler = Crawler(get_page_url(max_page), max_tasks=100)
+    loop.run_until_complete(crawler.run())
 
     print('Finished {0} urls in {1} secs'.format(
         len(crawler.seen_urls),
         (crawler.end_at - crawler.started_at).total_seconds()))
+
     crawler.close()
+
     loop.close()
