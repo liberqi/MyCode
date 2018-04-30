@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+    <meta charset="UTF-8">
+    <head>
+        <title>类似商品和服务区分表与中文版和区分表修改</title>
+        <h1 align="center">
+            <label>类似商品和服务区分表与中文版和区分表修改</label>
+            <!-- <h1>类似商品和服务区分表与中文版和区分表修改</h1> -->
+        </h1>
+        <div class=nice>
+            <form method="post" action="/show_nice">
+                <label>输入尼斯类别代码或关键字:</label>
+                <input type="search" name="search_text">
+                <input type="submit" value="提交">
+            </form>
+            <div class="mapping_nice">
+                <h2>所有时间点分类搜索结果：</h2>
+                {% if search_text %}
+                    <p>搜索：{{ search_text }}</p>
+                {% end %}
+                {% if results %}
+                    {% for result in results %}
+                        <br>
+                            <p>时间：{{ result[0]}}</p>
+                            <p>{{ result[1] }}: {{ result[2] }}</p>
+                            <p>{{ result[3] }}：{{ result[4] }}</p>
+                            <p>{{ result[5] }}: {{ result[6] }}</p>
+                        </br>
+                    {% end %}
+                {% end %}
+            </div>
+            <div class="modify_info">
+                <h2>所有时间点修改搜索结果：</h2>
+                {% if modify_info %}
+                    {% for modify in modify_info %}
+                        <br>
+                            <p>时间：{{ modify[0] }}</p>
+                            <p>修改信息:{{ modify[1] }}: {{ modify[2] }}</p>
+                        </br>
+                    {% end %}
+                {% end %}
+            </div>
+        </div>
+    </body>
+</html>

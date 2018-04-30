@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+    <meta charset="UTF-8">
+    <head>
+        <title>尼斯分类版本映射</title>
+        <h1 align="center">
+            <label>尼斯分类版本映射</label>
+        </h1>
+    </head>
+    <body>
+        <div class=version_mapping>
+            <form method="post" action="/">
+                <div class="form-group" align="center">
+                    <label>选择映射版本1:</label>
+                    <select name="version1">
+                        {% for version in all_versions %}
+                            <option value="{{ version }}">{{ version }}</option>
+                        {% end %}
+                    </select>
+                    <label>选择映射版本2:</label>
+                    <select name="version2">
+                        {% for version in all_versions %}
+                            <option value="{{ version }}">{{ version }}</option>
+                        {% end %}
+                    </select>
+                    <button type="submit">映射</button>
+                </div>
+            </form>
+        </div>
+        <div class="map_info">
+            {% if class_title and title and third %} 
+                <div class="class_title">
+                    <h3>类别标题修改结果：</h3>
+                    <table border="1">
+                      <tr>
+                        <th>类别</th>
+                        <th>修改前</th>
+                        <th>修改后</th>
+                      </tr>
+                      {% for f_title, name1, name2 in class_title %}
+                      <tr>
+                        <td>{{ escape(f_title) }}</td>
+                        <td>{{ escape(name1) }}</td>
+                        <td>{{ escape(name2) }}</td>
+                      </tr>
+                      {% end %}
+                    </table>
+                </div>
+                <div class="title">
+                    <h3>标题修改结果：</h3>
+                    {% if title[0] %}
+                        <h4>修改内容</h4>
+                        <table border="1">
+                          <tr>
+                            <td>位置</td>
+                            <td>修改前</td>
+                            <td>修改后</td>
+                          </tr>
+                          {% for modi in title[0] %}                            
+                          <tr>
+                            <td>{{ escape(modi[0]) }}</td>
+                            <td>{{ escape(modi[1]) }}</td>
+                            <td>{{ escape(modi[2]) }}</td>
+                          </tr>
+                          {% end %}
+                        </table>
+                    {% end %}
+                    {% if title[1] %}
+                        <h4>增加内容</h4>
+                        <table border="1">
+                          <tr>
+                            <td>位置</td>
+                            <td>增加类别</td>
+                          </tr>
+                          {% for inc in title[1] %}
+                              <tr>
+                                <td>{{ escape(inc[0]) }}</td>
+                                <td>{{ escape(inc[1]) }}</td>
+                              </tr>
+                            {% end %}
+                        </table>
+                    {% end %}
+                    {% if title[2] %}
+                        <h4>删除内容</h4>
+                        <table border="1">
+                          <tr>
+                            <td>位置</td>
+                            <td>删除类别</td>
+                          </tr>
+                          {% for dele in title[2] %}
+                              <tr>
+                                <td>{{ escape(dele[0]) }}</td>
+                                <td>{{ escape(dele[1]) }}</td>
+                              </tr>
+                            {% end %}
+                        </table>
+                    {% end %}
+                </div>
+
+                <div class="third">
+                    <h3>小类修改结果：</h3>
+                    <h4>修改内容</h4>
+                    {% if third[0] %}
+                        <table border="1">
+                          <tr>
+                            <td>位置</td>
+                            <td>类别代码或名称</td>
+                            <td>修改前</td>
+                            <td>修改后</td>
+                          </tr>
+                          {% for mod in third[0] %}
+                              <tr>
+                                <td>{{ escape(mod[0]) }}</td>
+                                <td>{{ escape(mod[1]) }}</td>
+                                <td>{{ escape(mod[2]) }}</td>
+                                <td>{{ escape(mod[3]) }}</td>
+                               </tr>
+                          {% end %}  
+                        </table>
+                    {% end %}     
+                    {% if third[1] %}
+                        <h4>增加内容</h4>
+                        <table border="1">
+                          <tr>
+                            <td>位置</td>
+                            <th colspan="2" >增加类别</th>
+                          </tr>
+                          {% for inc in third[1] %}
+                              <tr>
+                                <td>{{ escape(inc[0]) }}</td>
+                                <td>{{ escape(inc[1]) }}</td>
+                                <td>{{ escape(inc[2]) }}</td>
+                              </tr>
+                            {% end %}
+                        </table>
+
+                        {% if third[2] %}
+                            <h4>删除内容</h4>
+                            <table border="1">
+                              <tr>
+                                <td>位置</td>
+                                <th colspan="2" >删除类别</th>
+                              </tr>
+                              {% for dele in third[2] %}
+                              <tr>
+                                <td>{{ escape(dele[0]) }}</td>
+                                <td>{{ escape(dele[1]) }}</td>
+                                <td>{{ escape(dele[2]) }}</td>
+                              </tr>
+                              {% end %}
+                            </table>
+                        {% end %}
+                    {% end %}
+                </div>
+            {% end %}
+        </div>
+    </body>
+</html>
